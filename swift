@@ -81,7 +81,7 @@ func addContact() {
     let c = Contact(id: nextId, name: name, phones: phones, email: email, tags: tags)
     nextId += 1
     save(c)
-    print("✅ Added id \(c.id)\n")
+    print(" Added id \(c.id)\n")
 }
 
 func listContacts() {
@@ -131,3 +131,58 @@ func editContact() {
     if changePhones == "y" {
         // free old phones
         c.phones.forEach { usedPhones.remove($0.0) }
+        var newPhones: [(String, String)] = []
+        while true {
+            let raw = askNonEmpty("Phone: ")
+            let phone = normalizePhone(raw)
+            if usedPhones.contains(phone) { print("Already exists!"); continue }
+
+            let labelIn = ask("Label (enter=mobile): ")
+            let label = normalize(labelIn).isEmpty ? "mobile" : normalize(labelIn)
+
+            newPhones.append((phone, label))
+            usedPhones.insert(phone)
+
+            let more = normalize(ask("More phone? (y/n): "))
+            if more != "y" { break }
+        }
+        c.phones = newPhones
+    }
+
+    let tagsInput = ask("New tags comma (enter=keep): ")
+    if !tagsInput.isEmpty {
+        c.tags = Set(
+            tagsInput.split(separator: ",")
+                .map { normalize(String($0)) }
+                .filter { !$0.isEmpty }
+        )
+    }
+
+    update(c)
+    print("Updated.\n")
+}
+
+func deleteContact() {
+    guard let id = askInt("ID: "), let c = byId[id] else { print("Not found.\n"); return }
+    c.phones.forEach { usedPhones.remove($0.0) }
+    byId.removeValue(forKey: id)
+    list.removeAll { $0.id == id }
+    print(" Deleted.\n")
+}
+
+// MARK: - Menu
+while true {
+    print("""
+    ===== Contact Manager =====
+    1 Add   2 List   3 Find   4 Update   5 Delete   0 Exit
+    """)
+    switch ask("Choose: ") {
+    case "1": addContact()
+    case "2": listContacts()
+    case "3": findContacts()
+    case "4": editContact()
+    case "5": deleteContact()
+    case "0": exit(0)
+    default: print("Wrong option.\n")
+    }
+}
